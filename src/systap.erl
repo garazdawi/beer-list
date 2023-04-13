@@ -184,30 +184,8 @@ create_html_table("last-month", get_beers(lastMonth, Beers)),
         <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js\" crossorigin=\"anonymous\"></script>
 	<!-- Initialize tablesorter plugin -->
 	<script>
-					// Define custom parser function for Rating column
-			$.tablesorter.addParser({
-				id: \"rating\",
-				is: function(value) {
-					return /^[\d.]+$/.test(value); // only match numbers and decimal point
-				},
-				format: function(value) {
-					return parseFloat(value);
-				},
-				type: \"numeric\"
-			});
 			// Initialize tablesorter plugin
-			$(\".tablesorter\").tablesorter({
-				headers: {
-					2: {
-						sorter: \"rating\" // use custom parser for Rating column
-					}
-				},
-				widgets: [\"zebra\", \"filter\"],
-				widgetOptions: {
-					filter_external: \".search\",
-					filter_reset: \".reset\"
-				}
-			});
+			$(\".tablesorter\").tablesorter({});
 	</script>
 </body>
 </html>"].
@@ -218,6 +196,7 @@ create_html_table(TabName, Beers) ->
 		<table class=\"table table-bordered tablesorter\">
 			<thead class=\"thead-dark\">
 				<tr>
+                                        <th>Icon</th>
 					<th>Name</th>
 					<th>Brewery</th>
 					<th>Rating</th>
@@ -230,7 +209,9 @@ create_html_table(TabName, Beers) ->
 			</thead>
 			<tbody>",
      [["<tr>
-	  <td><b>",maps:get(<<"productNameBold">>,Beer,""),"</b><br/>",case maps:get(<<"productNameThin">>,Beer) of null -> ""; Name -> Name end,"</td>
+	  <td>",[["<img style=\"height: 80px; width: 30px; inset: 0px; color: transparent;\" src=\"",maps:get(<<"imageUrl">>,hd(maps:get(<<"images">>,Beer))),"_400.png?q=75&amp;w=375\"></img>"] || maps:get(<<"images">>,Beer) =/= []],
+       "</td>"
+       "<td><b>",maps:get(<<"productNameBold">>,Beer,""),"</b><br/>",case maps:get(<<"productNameThin">>,Beer) of null -> ""; Name -> Name end,"</div></div></td>
 	  <td>",maps:get(brewery,maps:get(untappd,Beer),maps:get(<<"producerName">>, Beer)),"</td>
 	  <td>",maps:get(rating,maps:get(untappd,Beer),"0.0"),"</td>
 	  <td>",float_to_list(maps:get(<<"price">>,Beer)*1.0,[{decimals,2}])," SEK</td>
