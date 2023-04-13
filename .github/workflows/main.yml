@@ -12,6 +12,9 @@ jobs:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
       - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 25
+          rebar3-version: 1
 
       - name: Install and Build 🔧 # This example project is built using npm and outputs the result to the 'build' folder. Replace with the commands required to build your project, or remove this step entirely if your site is pre-built.
         run: |
