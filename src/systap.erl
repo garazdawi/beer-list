@@ -1,0 +1,243 @@
+-module(systap).
+
+%% API exports
+-export([main/1]).
+
+%%====================================================================
+%% API functions
+%%====================================================================
+
+%% escript Entry point
+main([]) ->
+    AllBeers = fetch_all_beers(1),
+    file:write_file(
+      "index.html",
+      unicode:characters_to_binary(
+        lists:flatten(create_html(AllBeers)))).
+
+get_beers(coming, AllBeers) ->
+    get_beers(AllBeers, calendar:system_time_to_rfc3339(erlang:system_time(seconds)), infinity);
+get_beers(lastWeek, AllBeers) ->
+    Now = erlang:system_time(seconds),
+    get_beers(AllBeers,
+              calendar:system_time_to_rfc3339(Now - 60 * 60 * 24 * 7),
+              calendar:system_time_to_rfc3339(Now));
+get_beers(lastMonth, AllBeers) ->
+    Now = erlang:system_time(seconds),
+    get_beers(AllBeers,
+              calendar:system_time_to_rfc3339(Now - 60 * 60 * 24 * 30),
+              calendar:system_time_to_rfc3339(Now)).
+get_beers(AllBeers, FromDate, ToDate) ->
+    FromDateS = calendar:rfc3339_to_system_time(FromDate),
+    ToDateS = if is_list(ToDate) -> calendar:rfc3339_to_system_time(ToDate);
+                 true -> ToDate
+              end,
+    Beers = lists:filter(
+              fun(#{ <<"productLaunchDate">> := Date} = Beer) ->
+                      DateS = calendar:rfc3339_to_system_time(binary_to_list(Date)++"Z"),
+                      FromDateS =< DateS andalso DateS =< ToDateS
+              end, AllBeers),
+    [add_beer_stats(B) || B <- Beers].
+
+get_beer_name(Beer) ->
+    case maps:get(<<"productNameThin">>,Beer) of
+        null ->
+            maps:get(<<"productNameBold">>,Beer);
+        Name ->
+            Name
+    end.
+
+add_beer_stats(Beer) ->
+    Name = get_beer_name(Beer),
+    Producer = maps:get(<<"producerName">>, Beer),
+    case fetch_beer_stats([Name, " ", Producer]) of
+        [#{ } = Untappd|_] ->
+            Beer#{ untappd => Untappd };
+        [] ->
+            case fetch_beer_stats([Name, " ", hd(string:split(Producer, " ", trailing))]) of
+                [] ->
+                    case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer]) of
+                        [] ->
+                            Beer#{ untappd => #{ id => "0" } };
+                        [#{ } = Untappd|_] ->
+                            Beer#{ untappd => Untappd }
+                    end;
+                [#{ } = Untappd|_] ->
+                    Beer#{ untappd => Untappd }
+            end
+    end.
+
+fetch_all_beers(-1) ->
+    [];
+fetch_all_beers(Page) ->
+    Data = try_cache(integer_to_list(Page),
+                     fun() ->
+                             io:format("Fetching page: ~tp~n",[Page]),
+                             os:cmd(unicode:characters_to_list(
+                                      ["curl -s 'https://www.systembolaget.se/api/gateway/productsearch/search/?categoryLevel1=%C3%96l&page=",integer_to_list(Page),"' -H 'baseURL: https://api-systembolaget.azure-api.net/sb-api-ecommerce/v1'"])) end),
+    Json = try
+               jsx:decode(Data,[])
+           catch E:R:ST ->
+                   io:format("Failed to decode ~ts~n",[Data]),
+                   erlang:raise(E,R,ST)
+           end,
+    Products = maps:get(<<"products">>, Json) ++
+        fetch_all_beers(maps:get(<<"nextPage">>,maps:get(<<"metadata">>, Json))).
+
+fetch_beer_stats(Name) ->
+    QName = uri_string:quote(Name),
+    Page = try_cache(QName,
+                     fun() ->
+                             os:cmd("curl -s https://untappd.com/search?q="++QName)
+                     end),
+    {ok, Beers, []} = htmerl:sax(Page, [{event_fun, fun event_fun/3},
+                                        {user_state, #{ current => undefined,
+                                                        beers => [] }}]),
+    Beers.
+
+try_cache(Name, Fun) ->
+    TmpFile = "/tmp/systap.tmp."++Name,
+    case file:read_file(TmpFile) of
+        {ok,B} -> B;
+        _ ->
+            B = unicode:characters_to_binary(Fun()),
+            file:write_file(TmpFile, B),
+            B
+    end.
+
+%%====================================================================
+%% Internal functions
+%%====================================================================
+event_fun({startElement,_,<<"div">>,_,[{_,_,<<"class">>,<<"beer-item ">>}]},
+          _, S = #{ beers := T, current := #{ id := Id } = C }) ->
+    S#{ beers => [C|T], current := undefined };
+event_fun({startElement,_,<<"a">>,_,[{_,_,<<"class">>,<<"label">>},
+                                     {_,_,<<"href">>,Href}]}, _,
+          S = #{ current := undefined }) ->
+    S#{ current := #{ id => Href } };
+event_fun({startElement,_,<<"p">>,_,[{_,_,<<"class">>,<<"name">>}]}, _,
+          S = #{ current := C }) ->
+    S#{ collect => name };
+event_fun({startElement,_,<<"p">>,_,[{_,_,<<"class">>,<<"brewery">>}]}, _,
+          S = #{ current := C }) ->
+    S#{ collect => brewery };
+event_fun({startElement,_,<<"p">>,_,[{_,_,<<"class">>,<<"style">>}]}, _,
+          S = #{ current := C }) ->
+    S#{ collect => style };
+event_fun({startElement,_,<<"p">>,_,[{_,_,<<"class">>,<<"abv">>}]}, _,
+          S = #{ current := C }) ->
+    S#{ collect => abv };
+event_fun({startElement,_,<<"p">>,_,[{_,_,<<"class">>,<<"ibu">>}]}, _,
+          S = #{ current := C }) ->
+    S#{ collect => ibu };
+event_fun({startElement,_,<<"div">>,_,[{_,_,<<"class">>,<<"caps">>},
+                                       {_,_,<<"data-rating">>,Rating}]}, _,
+          S = #{ current := C }) ->
+    S#{ current := C#{ rating => Rating }};
+event_fun({characters,Chars}, _,
+          S = #{ collect := Label, current := C })
+  when Label =/= undefined ->
+    S#{ current := C#{ Label => Chars }, collect => undefined };
+event_fun(endDocument, _, S = #{ current := C }) when C =/= undefined ->
+    lists:reverse([C|maps:get(beers, S)]);
+event_fun(endDocument, _, S = #{ current := C }) ->
+    lists:reverse(maps:get(beers, S));
+event_fun(Event, _, S) ->
+    % io:format("Ignored: ~tp~n",[Event]),
+    S.
+
+create_html(Beers) ->
+    ["<!DOCTYPE html>
+<html>
+<head>
+	<title>Beer List</title>
+	<!-- Include Bootstrap CSS -->
+	<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css\">
+	<!-- Include tablesorter CSS -->
+	<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/css/theme.bootstrap_4.min.css\" />
+</head>
+<body>
+	<div class=\"container mt-5\">
+		<h1 class=\"text-center mb-5\">Beer List</h1>
+
+                <!-- Create tabs for different time periods -->
+		<ul class=\"nav nav-tabs\" id=\"myTab\" role=\"tablist\">
+			<li class=\"nav-item\">
+				<a class=\"nav-link active\" id=\"coming-tab\" data-toggle=\"tab\" href=\"#coming\" role=\"tab\" aria-controls=\"coming\" aria-selected=\"true\">Coming</a>
+			</li>
+			<li class=\"nav-item\">
+				<a class=\"nav-link\" id=\"last-week-tab\" data-toggle=\"tab\" href=\"#last-week\" role=\"tab\" aria-controls=\"last-week\" aria-selected=\"false\">Last week</a>
+			</li>
+			<li class=\"nav-item\">
+				<a class=\"nav-link\" id=\"last-month-tab\" data-toggle=\"tab\" href=\"#last-month\" role=\"tab\" aria-controls=\"last-month\" aria-selected=\"false\">Last month</a>
+			</li>
+		</ul>
+<div class=\"tab-content\" id=\"myTabContent\">
+", create_html_table("coming", get_beers(coming, Beers)),
+create_html_table("last-week", get_beers(lastWeek, Beers)),
+create_html_table("last-month", get_beers(lastMonth, Beers)),
+     "
+	</div></div>
+	<!-- Include jQuery and tablesorter JS -->
+	<script src=\"https://code.jquery.com/jquery-3.2.1.slim.min.js\"></script>
+	<script src=\"https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js\"> </script>
+        <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js\" crossorigin=\"anonymous\"></script>
+	<!-- Initialize tablesorter plugin -->
+	<script>
+					// Define custom parser function for Rating column
+			$.tablesorter.addParser({
+				id: \"rating\",
+				is: function(value) {
+					return /^[\d.]+$/.test(value); // only match numbers and decimal point
+				},
+				format: function(value) {
+					return parseFloat(value);
+				},
+				type: \"numeric\"
+			});
+			// Initialize tablesorter plugin
+			$(\".tablesorter\").tablesorter({
+				headers: {
+					2: {
+						sorter: \"rating\" // use custom parser for Rating column
+					}
+				},
+				widgets: [\"zebra\", \"filter\"],
+				widgetOptions: {
+					filter_external: \".search\",
+					filter_reset: \".reset\"
+				}
+			});
+	</script>
+</body>
+</html>"].
+
+create_html_table(TabName, Beers) ->
+    ["<!-- ",TabName," tab -->
+			<div class=\"tab-pane fade ",["show active"|| TabName =:= "coming" ],"\" id=\"",TabName,"\" role=\"tabpanel\" aria-labelledby=\"",TabName,"-tab\">
+		<table class=\"table table-bordered tablesorter\">
+			<thead class=\"thead-dark\">
+				<tr>
+					<th>Name</th>
+					<th>Brewery</th>
+					<th>Rating</th>
+					<th>Price</th>
+					<th>Style</th>
+					<th>Release Date</th>
+					<th>Systembolaget</th>
+					<th>Untappd</th>
+				</tr>
+			</thead>
+			<tbody>",
+     [["<tr>
+	  <td><b>",maps:get(<<"productNameBold">>,Beer,""),"</b><br/>",case maps:get(<<"productNameThin">>,Beer) of null -> ""; Name -> Name end,"</td>
+	  <td>",maps:get(brewery,maps:get(untappd,Beer),maps:get(<<"producerName">>, Beer)),"</td>
+	  <td>",maps:get(rating,maps:get(untappd,Beer),"0.0"),"</td>
+	  <td>",float_to_list(maps:get(<<"price">>,Beer)*1.0,[{decimals,2}])," SEK</td>
+	  <td>",maps:get(style,maps:get(untappd,Beer),"N/A"),"</td>
+          <td>",maps:get(<<"productLaunchDate">>,Beer),"</td>
+	  <td><a href=\"https://www.systembolaget.se/",maps:get(<<"productNumber">>,Beer),"\">Link</a></td>
+	  <td><a href=\"https://untappd.com/",maps:get(id,maps:get(untappd,Beer)),"\">Link</a></td>
+       </tr>"] || Beer <- Beers],"
+			</tbody>
+		</table></div>"].
