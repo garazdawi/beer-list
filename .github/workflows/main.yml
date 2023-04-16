@@ -2,6 +2,8 @@ name: Build and Deploy
 on:
   workflow_dispatch:
   push:
+  schedule:
+    - cron: 0 0 * * *
 
 permissions:
   contents: write
@@ -12,6 +14,11 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        if: github.event_name != 'schedule'
+        with:
+          path: cache
+          key: ${{ runner.os }}-cache
       - uses: erlef/setup-beam@v1
         with:
           otp-version: 25
