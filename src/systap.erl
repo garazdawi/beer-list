@@ -47,30 +47,47 @@ get_beer_name(Beer) ->
             Name
     end.
 
-add_beer_stats(Beer) ->
-    Name = get_beer_name(Beer),
-    Producer = maps:get(<<"producerName">>, Beer),
-    case fetch_beer_stats([Name, " ", Producer]) of
-        [#{ } = Untappd|_] ->
-            Beer#{ untappd => Untappd };
-        [] ->
-            case fetch_beer_stats([Name, " ", hd(string:split(Producer, " ", trailing))]) of
+get_producer_name(Beer) ->
+    maps:get(<<"producerName">>, Beer).
+
+add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
+    Id = binary_to_integer(SId),
+    case file:consult("override.term") of
+        {ok, [#{ Id := Name }] } ->
+            case fetch_beer_stats(Name) of
+                [#{ } = Untappd|_] ->
+                    Beer#{ untappd => Untappd };
+                _ ->
+                    io:format("Could not find override: '~ts' (~ts)~n", [Name, SId]),
+                    Beer#{ untappd => #{ id => "0" } }
+            end;
+        _ ->
+            Name = get_beer_name(Beer),
+            Producer = get_producer_name(Beer),
+            case fetch_beer_stats([Name, " ", Producer]) of
+                [#{ } = Untappd|_] ->
+                    Beer#{ untappd => Untappd };
                 [] ->
-                    case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer]) of
+                    case fetch_beer_stats([Name, " ", hd(string:split(Producer, " ", trailing))]) of
                         [] ->
-                            Beer#{ untappd => #{ id => "0" } };
+                            case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer]) of
+                                [] ->
+                                    io:format("~ts => \"~ts,\"~n",
+                                              [SId, [Name, " ", Producer]]),
+                                    Beer#{ untappd => #{ id => "0" } };
+                                [#{ } = Untappd|_] ->
+                                    Beer#{ untappd => Untappd }
+                            end;
                         [#{ } = Untappd|_] ->
                             Beer#{ untappd => Untappd }
-                    end;
-                [#{ } = Untappd|_] ->
-                    Beer#{ untappd => Untappd }
+                    end
             end
     end.
 
 fetch_all_beers(-1) ->
     [];
 fetch_all_beers(Page) ->
-    Data = try_cache(integer_to_list(Page),
+    Data = try_cache("bolaget."++integer_to_list(Page),
                      fun() ->
                              io:format("Fetching page: ~tp~n",[Page]),
                              os:cmd(unicode:characters_to_list(
@@ -86,7 +103,7 @@ fetch_all_beers(Page) ->
 
 fetch_beer_stats(Name) ->
     QName = uri_string:quote(Name),
-    Page = try_cache(QName,
+    Page = try_cache("untappd"++QName,
                      fun() ->
                              os:cmd("curl -s https://untappd.com/search?q="++QName)
                      end),
@@ -96,7 +113,8 @@ fetch_beer_stats(Name) ->
     Beers.
 
 try_cache(Name, Fun) ->
-    TmpFile = "/tmp/systap.tmp."++Name,
+    TmpFile = "cache/"++Name,
+    ok = filelib:ensure_dir(TmpFile),
     case file:read_file(TmpFile) of
         {ok,B} -> B;
         _ ->
