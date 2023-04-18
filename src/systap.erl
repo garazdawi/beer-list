@@ -109,7 +109,15 @@ fetch_beer_stats(Name) ->
     QName = uri_string:quote(Name),
     Page = try_cache("untappd"++QName,
                      fun() ->
-                             os:cmd("curl -s https://untappd.com/search?q="++QName)
+                             Res = os:cmd("curl -s https://untappd.com/search?q="++QName),
+                             case re:run(Res, "Enable JavaScript and cookies to continue") of
+                                 {match, _} ->
+                                     io:format("Sleeping 3 seconds before retrying ~ts~n",[QName]),
+                                     timer:sleep(3000),
+                                     os:cmd("curl -s https://untappd.com/search?q="++QName);
+                                 _ ->
+                                     Res
+                             end
                      end),
     {ok, Beers, []} = htmerl:sax(Page, [{event_fun, fun event_fun/3},
                                         {user_state, #{ current => undefined,
