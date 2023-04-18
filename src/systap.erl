@@ -16,13 +16,16 @@ main([]) ->
         lists:flatten(create_html(AllBeers)))).
 
 get_beers(coming, AllBeers) ->
+    io:format("Fetch coming beers:~n"),
     get_beers(AllBeers, calendar:system_time_to_rfc3339(erlang:system_time(seconds)), infinity);
 get_beers(lastWeek, AllBeers) ->
+    io:format("Fetch last weeks beers:~n"),
     Now = erlang:system_time(seconds),
     get_beers(AllBeers,
               calendar:system_time_to_rfc3339(Now - 60 * 60 * 24 * 7),
               calendar:system_time_to_rfc3339(Now));
 get_beers(lastMonth, AllBeers) ->
+    io:format("Fetch last months beers:~n"),
     Now = erlang:system_time(seconds),
     get_beers(AllBeers,
               calendar:system_time_to_rfc3339(Now - 60 * 60 * 24 * 30),
@@ -72,7 +75,7 @@ add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
                         [] ->
                             case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer]) of
                                 [] ->
-                                    io:format("~ts => \"~ts,\"~n",
+                                    io:format("~ts => \"~ts\",~n",
                                               [SId, [Name, " ", Producer]]),
                                     Beer#{ untappd => #{ id => "0" } };
                                 [#{ } = Untappd|_] ->
@@ -91,7 +94,8 @@ fetch_all_beers(Page) ->
                      fun() ->
                              io:format("Fetching page: ~tp~n",[Page]),
                              os:cmd(unicode:characters_to_list(
-                                      ["curl -s 'https://www.systembolaget.se/api/gateway/productsearch/search/?categoryLevel1=%C3%96l&page=",integer_to_list(Page),"' -H 'baseURL: https://api-systembolaget.azure-api.net/sb-api-ecommerce/v1'"])) end),
+                                      ["curl -s 'https://www.systembolaget.se/api/gateway/productsearch/search/?categoryLevel1=%C3%96l&page=",integer_to_list(Page),
+                                       "' -H 'baseURL: https://api-systembolaget.azure-api.net/sb-api-ecommerce/v1'"])) end),
     Json = try
                jsx:decode(Data,[])
            catch E:R:ST ->
@@ -236,7 +240,7 @@ create_html_table(TabName, Beers) ->
 	  <td>",maps:get(style,maps:get(untappd,Beer),"N/A"),"</td>
           <td>",maps:get(<<"productLaunchDate">>,Beer),"</td>
 	  <td><a href=\"https://www.systembolaget.se/",maps:get(<<"productNumber">>,Beer),"\">Link</a></td>
-	  <td><a href=\"https://untappd.com/",maps:get(id,maps:get(untappd,Beer)),"\">Link</a></td>
+	  <td>",[["<a href=\"https://untappd.com/",maps:get(id,maps:get(untappd,Beer)),"\">Link</a>"] || maps:get(id,maps:get(untappd,Beer)) =/= "0"],"</td>
        </tr>"] || Beer <- Beers],"
 			</tbody>
 		</table></div>"].
