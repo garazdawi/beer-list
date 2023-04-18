@@ -31,6 +31,12 @@ jobs:
           mkdir html
           mv index.html html/
 
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cache
+          path: cache
+
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
