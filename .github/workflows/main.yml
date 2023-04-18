@@ -17,8 +17,13 @@ jobs:
       - uses: actions/cache@v3
         if: github.event_name != 'schedule'
         with:
-          path: cache
-          key: ${{ runner.os }}-cache
+          path: cache/bolaget*
+          key: ${{ runner.os }}-bolaget-cache
+      - uses: actions/cache@v3
+        if: github.event_name != 'schedule'
+        with:
+          path: cache/untappd*
+          key: ${{ runner.os }}-untappd-cache
       - uses: erlef/setup-beam@v1
         with:
           otp-version: 25

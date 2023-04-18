@@ -110,7 +110,7 @@ fetch_beer_stats(Name) ->
     Page = try_cache("untappd"++QName,
                      fun() ->
                              Res = os:cmd("curl -s https://untappd.com/search?q="++QName),
-                             case re:run(Res, "Enable JavaScript and cookies to continue") of
+                             case re:run(Res, "Enable JavaScript and cookies to continue",[unicode]) of
                                  {match, _} ->
                                      io:format("Sleeping 3 seconds before retrying ~ts~n",[QName]),
                                      timer:sleep(3000),
