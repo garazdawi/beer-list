@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
+
+      # Copied from https://github.com/MarketingPipeline/Python-Selenium-Action/
       - name: Setting up Python
         uses: actions/setup-python@v4
         with:
@@ -35,7 +37,7 @@ jobs:
           path: cache/bolaget*
           key: ${{ runner.os }}-bolaget-cache
       - uses: actions/cache@v3
-        if: github.event_name = 'push'
+        if: github.event_name == 'push'
         with:
           path: cache/untappd*
           key: ${{ runner.os }}-untappd-cache
