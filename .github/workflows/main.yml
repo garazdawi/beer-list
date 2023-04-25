@@ -14,13 +14,28 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v3
+      - name: Setting up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Installing package list
+        run: apt list --installed
+      - name: Removing previous chrome instances on runner
+        run: sudo apt purge google-chrome-stable
+
+       # Need to fetch reqs if needed
+      - name: Installing all necessary packages
+        run: pip install chromedriver-autoinstaller selenium pyvirtualdisplay
+      - name: Install xvfb
+        run: sudo apt-get install xvfb
+
       - uses: actions/cache@v3
         if: github.event_name != 'schedule'
         with:
           path: cache/bolaget*
           key: ${{ runner.os }}-bolaget-cache
       - uses: actions/cache@v3
-        if: github.event_name != 'schedule'
+        if: github.event_name = 'push'
         with:
           path: cache/untappd*
           key: ${{ runner.os }}-untappd-cache

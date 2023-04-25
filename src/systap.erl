@@ -112,9 +112,8 @@ fetch_beer_stats(Name) ->
                              Res = os:cmd("curl -s https://untappd.com/search?q="++QName),
                              case re:run(Res, "Enable JavaScript and cookies to continue",[unicode]) of
                                  {match, _} ->
-                                     io:format("Sleeping 3 seconds before retrying ~ts~n",[QName]),
-                                     timer:sleep(3000),
-                                     os:cmd("curl -s https://untappd.com/search?q="++QName);
+                                     io:format("Trying selenium ~ts~n",[QName]),
+                                     selenium("https://untappd.com/search?q="++QName);
                                  _ ->
                                      Res
                              end
@@ -252,3 +251,25 @@ create_html_table(TabName, Beers) ->
        </tr>"] || Beer <- Beers],"
 			</tbody>
 		</table></div>"].
+
+
+% <img alt="Produktbild för Melleruds" sizes="100vw" srcset="https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=375 375w, https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=384 384w, https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=768 768w, https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=1024 1024w, https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=1208 1208w, https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=2000 2000w" src="https://product-cdn.systembolaget.se/productimages/33194844/33194844_400.png?q=75&amp;w=2000" decoding="async" data-nimg="fill" class="css-srqzl3 e53gfhp1" style="position: absolute; height: 100%; width: 100%; inset: 0px; color: transparent;">
+
+
+selenium(Url) ->
+    Tmp = string:trim(os:cmd("mktemp")),
+    file:write_file(
+     Tmp,
+      "from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+import chromedriver_autoinstaller
+from pyvirtualdisplay import Display
+options = Options()
+options.add_argument(\"--headless=new\")
+driver = webdriver.Chrome(options=options)
+driver.get('"++Url++"')
+html = driver.page_source
+print(html)
+driver.quit()"),
+     os:cmd("python3 "++Tmp).
