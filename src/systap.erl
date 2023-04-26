@@ -267,7 +267,7 @@ import chromedriver_autoinstaller
 import undetected_chromedriver as uc
 options = Options()
 options.add_argument(\"--headless=new\")
-driver = webdriver.Chrome(options=options)
+driver = uc.Chrome(options=options)
 driver.get('"++Url++"')
 WebDriverWait(driver, timeout=3).until(lambda d: d.find_element(By.CLASS_NAME,'beer-list'))
 html = driver.page_source
