@@ -261,12 +261,15 @@ selenium(Url) ->
     file:write_file(
      Tmp,
       "from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.by import By
 import chromedriver_autoinstaller
 import undetected_chromedriver as uc
 options = Options()
 options.add_argument(\"--headless=new\")
 driver = webdriver.Chrome(options=options)
 driver.get('"++Url++"')
+WebDriverWait(driver, timeout=3).until(lambda d: d.find_element(By.CLASS_NAME,'beer-list'))
 html = driver.page_source
 print(html)
 driver.quit()"),
