@@ -260,11 +260,9 @@ selenium(Url) ->
     Tmp = string:trim(os:cmd("mktemp")),
     file:write_file(
      Tmp,
-      "from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+      "from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
-from pyvirtualdisplay import Display
+import undetected_chromedriver as uc
 options = Options()
 options.add_argument(\"--headless=new\")
 driver = webdriver.Chrome(options=options)
