@@ -275,4 +275,4 @@ try:
     print(html)
 finally:
     driver.quit()"),
-     os:cmd("python3 "++Tmp).
+     os:cmd("timeout -k 10 5 python3 "++Tmp).
