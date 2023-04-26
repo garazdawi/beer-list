@@ -269,8 +269,10 @@ options = Options()
 options.add_argument(\"--headless=new\")
 driver = uc.Chrome(options=options)
 driver.get('"++Url++"')
-WebDriverWait(driver, timeout=3).until(lambda d: d.find_element(By.CLASS_NAME,'beer-list'))
-html = driver.page_source
-print(html)
-driver.quit()"),
+try:
+    WebDriverWait(driver, timeout=3).until(lambda d: d.find_element(By.CLASS_NAME,'beer-list'))
+    html = driver.page_source
+    print(html)
+finally:
+    driver.quit()"),
      os:cmd("python3 "++Tmp).
