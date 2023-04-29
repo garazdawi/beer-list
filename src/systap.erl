@@ -34,7 +34,7 @@ get_beers(all, AllBeers) ->
         io:format("Fetch all beers:~n"),
     Now = erlang:system_time(seconds),
     get_beers(AllBeers,
-              "2000-01-01T00:00:00",
+              "2000-01-01T00:00:00Z",
               calendar:system_time_to_rfc3339(Now)).
 get_beers(AllBeers, FromDate, ToDate) ->
     FromDateS = calendar:rfc3339_to_system_time(FromDate),
