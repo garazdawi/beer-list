@@ -36,11 +36,11 @@ jobs:
         with:
           path: cache/bolaget*
           key: ${{ runner.os }}-bolaget-cache
-      # - uses: actions/cache@v3
-      #   if: github.event_name == 'push'
-      #   with:
-      #     path: cache/untappd*
-      #     key: ${{ runner.os }}-untappd-cache
+      - uses: actions/cache@v3
+        if: github.event_name == 'push'
+        with:
+          path: cache/untappd*
+          key: ${{ runner.os }}-untappd-cache
       - uses: erlef/setup-beam@v1
         with:
           otp-version: 25
