@@ -267,6 +267,7 @@ import chromedriver_autoinstaller
 import undetected_chromedriver as uc
 options = Options()
 options.add_argument(\"--headless=new\")
+print('<!-- Start driver -->\\n')
 driver = uc.Chrome(options=options)
 print('<!-- Fetching "++Url++" -->\\n')
 driver.get('"++Url++"')
