@@ -109,14 +109,14 @@ fetch_beer_stats(Name) ->
     QName = uri_string:quote(Name),
     Page = try_cache("untappd"++QName,
                      fun() ->
-                             %% Res = os:cmd("curl -s https://untappd.com/search?q="++QName),
-                             %% case re:run(Res, "Enable JavaScript and cookies to continue",[unicode]) of
-                             %%     {match, _} ->
-                                     io:format("Trying selenium ~ts~n",[QName]),
+                             Res = os:cmd("curl -s https://untappd.com/search?q="++QName),
+                             case re:run(Res, "Enable JavaScript and cookies to continue",[unicode]) of
+                                 {match, _} ->
+                                     % io:format("Trying selenium ~ts~n",[QName]),
                                      selenium("https://untappd.com/search?q="++QName)%% ;
-                                 %% _ ->
-                                 %%     Res
-                             %% end
+                                 _ ->
+                                     Res
+                             end
                      end),
 
     case htmerl:sax(Page, [{event_fun, fun event_fun/3},
