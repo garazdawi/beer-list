@@ -118,10 +118,15 @@ fetch_beer_stats(Name) ->
                                  %%     Res
                              %% end
                      end),
-    {ok, Beers, []} = htmerl:sax(Page, [{event_fun, fun event_fun/3},
-                                        {user_state, #{ current => undefined,
-                                                        beers => [] }}]),
-    Beers.
+    case string:trim(Page) of
+        "" ->
+            [];
+        Page ->
+            {ok, Beers, []} = htmerl:sax(Page, [{event_fun, fun event_fun/3},
+                                                {user_state, #{ current => undefined,
+                                                                beers => [] }}]),
+            Beers
+    end.
 
 try_cache(Name, Fun) ->
     TmpFile = "cache/"++Name,
@@ -267,9 +272,7 @@ import chromedriver_autoinstaller
 import undetected_chromedriver as uc
 options = Options()
 options.add_argument(\"--headless=new\")
-print('<!-- Start driver -->\\n')
 driver = uc.Chrome(options=options)
-print('<!-- Fetching "++Url++" -->\\n')
 driver.get('"++Url++"')
 try:
     WebDriverWait(driver, timeout=3).until(lambda d: d.find_element(By.CLASS_NAME,'beer-list'))
