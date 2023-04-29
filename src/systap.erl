@@ -268,6 +268,7 @@ import undetected_chromedriver as uc
 options = Options()
 options.add_argument(\"--headless=new\")
 driver = uc.Chrome(options=options)
+print('<!-- Fetching "++Url++" -->\\n')
 driver.get('"++Url++"')
 try:
     WebDriverWait(driver, timeout=3).until(lambda d: d.find_element(By.CLASS_NAME,'beer-list'))
@@ -275,4 +276,4 @@ try:
     print(html)
 finally:
     driver.quit()"),
-     os:cmd("timeout -k 20s 15s python3 "++Tmp).
+     os:cmd("timeout -k 2m 1m python3 "++Tmp).
