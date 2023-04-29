@@ -29,6 +29,12 @@ get_beers(lastMonth, AllBeers) ->
     Now = erlang:system_time(seconds),
     get_beers(AllBeers,
               calendar:system_time_to_rfc3339(Now - 60 * 60 * 24 * 30),
+              calendar:system_time_to_rfc3339(Now));
+get_beers(all, AllBeers) ->
+        io:format("Fetch all beers:~n"),
+    Now = erlang:system_time(seconds),
+    get_beers(AllBeers,
+              "2000-01-01T00:00:00",
               calendar:system_time_to_rfc3339(Now)).
 get_beers(AllBeers, FromDate, ToDate) ->
     FromDateS = calendar:rfc3339_to_system_time(FromDate),
@@ -36,9 +42,12 @@ get_beers(AllBeers, FromDate, ToDate) ->
                  true -> ToDate
               end,
     Beers = lists:filter(
-              fun(#{ <<"productLaunchDate">> := Date} = Beer) ->
+              fun(#{ <<"productLaunchDate">> := Date,
+                     <<"isSupplierTemporaryNotAvailable">> := NotAvailable,
+                     <<"isTemporaryOutOfStock">> := OutOfStock } = Beer) ->
                       DateS = calendar:rfc3339_to_system_time(binary_to_list(Date)++"Z"),
-                      FromDateS =< DateS andalso DateS =< ToDateS
+                      FromDateS =< DateS andalso DateS =< ToDateS andalso
+                          not NotAvailable andalso not OutOfStock
               end, AllBeers),
     [add_beer_stats(B) || B <- Beers].
 
@@ -205,11 +214,15 @@ create_html(Beers) ->
 			<li class=\"nav-item\">
 				<a class=\"nav-link\" id=\"last-month-tab\" data-toggle=\"tab\" href=\"#last-month\" role=\"tab\" aria-controls=\"last-month\" aria-selected=\"false\">Last month</a>
 			</li>
+			<li class=\"nav-item\">
+				<a class=\"nav-link\" id=\"all-tab\" data-toggle=\"tab\" href=\"#all\" role=\"tab\" aria-controls=\"all\" aria-selected=\"false\">All beers</a>
+			</li>
 		</ul>
 <div class=\"tab-content\" id=\"myTabContent\">
 ", create_html_table("coming", get_beers(coming, Beers)),
 create_html_table("last-week", get_beers(lastWeek, Beers)),
 create_html_table("last-month", get_beers(lastMonth, Beers)),
+create_html_table("all", get_beers(all, Beers)),
      "
 	</div></div>
 	<!-- Include jQuery and tablesorter JS -->
