@@ -60,7 +60,12 @@ get_beer_name(Beer) ->
     end.
 
 get_producer_name(Beer) ->
-    maps:get(<<"producerName">>, Beer).
+    case maps:get(<<"producerName">>, Beer) of
+        null ->
+            "";
+        Producer ->
+            Producer
+    end.
 
 add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
     Id = binary_to_integer(SId),
