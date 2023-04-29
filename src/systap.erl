@@ -113,7 +113,7 @@ fetch_beer_stats(Name) ->
                              case re:run(Res, "Enable JavaScript and cookies to continue",[unicode]) of
                                  {match, _} ->
                                      % io:format("Trying selenium ~ts~n",[QName]),
-                                     selenium("https://untappd.com/search?q="++QName)%% ;
+                                     selenium("https://untappd.com/search?q="++QName);
                                  _ ->
                                      Res
                              end

@@ -37,7 +37,7 @@ jobs:
           path: cache/bolaget*
           key: ${{ runner.os }}-bolaget-cache
       - uses: actions/cache@v3
-        if: github.event_name == 'push'
+        if: github.event_name != 'schedule'
         with:
           path: cache/untappd*
           key: ${{ runner.os }}-untappd-cache
