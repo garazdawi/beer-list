@@ -121,7 +121,7 @@ fetch_beer_stats(Name) ->
     case string:trim(Page) of
         "" ->
             [];
-        Page ->
+        _ ->
             {ok, Beers, []} = htmerl:sax(Page, [{event_fun, fun event_fun/3},
                                                 {user_state, #{ current => undefined,
                                                                 beers => [] }}]),
