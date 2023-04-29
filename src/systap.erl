@@ -118,14 +118,14 @@ fetch_beer_stats(Name) ->
                                  %%     Res
                              %% end
                      end),
-    case string:trim(Page) of
-        "" ->
-            [];
+
+    case htmerl:sax(Page, [{event_fun, fun event_fun/3},
+                           {user_state, #{ current => undefined,
+                                           beers => [] }}]) of
+        {ok, Beers, []} ->
+            Beers;
         _ ->
-            {ok, Beers, []} = htmerl:sax(Page, [{event_fun, fun event_fun/3},
-                                                {user_state, #{ current => undefined,
-                                                                beers => [] }}]),
-            Beers
+            []
     end.
 
 try_cache(Name, Fun) ->
