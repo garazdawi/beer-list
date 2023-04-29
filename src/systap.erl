@@ -223,16 +223,50 @@ create_html(Beers) ->
 create_html_table("last-week", get_beers(lastWeek, Beers)),
 create_html_table("last-month", get_beers(lastMonth, Beers)),
 create_html_table("all", get_beers(all, Beers)),
-     "
-	</div></div>
+     "</div><form>
+			<div class=\"form-group mt-3\">
+				<label>Filter by Style:</label>
+				<div class=\"filter-checkboxes\"></div>
+        </div>
 	<!-- Include jQuery and tablesorter JS -->
 	<script src=\"https://code.jquery.com/jquery-3.2.1.slim.min.js\"></script>
 	<script src=\"https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js\"> </script>
         <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js\" crossorigin=\"anonymous\"></script>
 	<!-- Initialize tablesorter plugin -->
 	<script>
+        $(document).ready(function(){
+                        var styles = [];
+			$('.beer-style').each(function(){
+				var style = $(this).text().split('-')[0];
+				if ($.inArray(style, styles) === -1) {
+					styles.push(style);
+				}
+			});
+                        styles.sort();
+			$.each(styles, function(index, value){
+				$('.filter-checkboxes').append('<div class=\"form-check\"><input class=\"form-check-input style-filter\" type=\"checkbox\" value=\"'+value+'\" id=\"'+value+'\"><label class=\"form-check-label\" for=\"'+value+'\">'+value+'</label></div>');
+			});
+                        $(\".style-filter\").on(\"change\", function() {
+				var checkedStyles = [];
+				$(\".style-filter:checked\").each(function() {
+					checkedStyles.push($(this).val().split('-')[0]);
+				});
+				if (checkedStyles.length == 0) {
+					$(\".beer-style\").closest(\"tr\").show();
+				} else {
+					$(\".beer-style\").each(function() {
+						var style = $(this).text().split('-')[0];
+						if (checkedStyles.includes(style)) {
+							$(this).closest(\"tr\").show();
+						} else {
+							$(this).closest(\"tr\").hide();
+						}
+					});
+				}
+			});
 			// Initialize tablesorter plugin
 			$(\".tablesorter\").tablesorter({});
+        });
 	</script>
 </body>
 </html>"].
@@ -262,7 +296,7 @@ create_html_table(TabName, Beers) ->
 	  <td>",maps:get(brewery,maps:get(untappd,Beer),maps:get(<<"producerName">>, Beer)),"</td>
 	  <td>",maps:get(rating,maps:get(untappd,Beer),"0.0"),"</td>
 	  <td>",float_to_list(maps:get(<<"price">>,Beer)*1.0,[{decimals,2}])," SEK</td>
-	  <td>",maps:get(style,maps:get(untappd,Beer),"N/A"),"</td>
+	  <td class=\"beer-style\">",maps:get(style,maps:get(untappd,Beer),"N/A"),"</td>
           <td>",maps:get(<<"productLaunchDate">>,Beer),"</td>
 	  <td><a href=\"https://www.systembolaget.se/",maps:get(<<"productNumber">>,Beer),"\">Link</a></td>
 	  <td>",[["<a href=\"https://untappd.com/",maps:get(id,maps:get(untappd,Beer)),"\">Link</a>"] || maps:get(id,maps:get(untappd,Beer)) =/= "0"],"</td>
