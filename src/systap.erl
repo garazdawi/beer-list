@@ -151,7 +151,7 @@ fetch_beer_stats(Name) ->
     end.
 
 try_cache(Name, Fun) ->
-    TmpFile = "cache/"++Name,
+    TmpFile = lists:flatten(unicode:characters_to_list("cache/"++Name)),
     ok = filelib:ensure_dir(TmpFile),
     case file:read_file(TmpFile) of
         {ok,B} -> B;
