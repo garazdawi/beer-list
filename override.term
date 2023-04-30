@@ -1,13 +1,12 @@
+% -*- coding: utf-8 -*-
 #{ 33195072 => "Hidden Talent Village Brewery",
    24572211 => "Mai bock Wieninger",
    32103658 => "Primula Mezzavia",
    33433686 => "Three More Times Browar Nepomucen",
    34083971 => "Wilde Brasserie Du Pays Flamand",
    33770257 => "Rare Dos",
-   31353252 => "Off The Rack Kentucky Bourbon Lervig",
-   33192496 => "Pühaste Tumeaine Coffee papau",
+   33192496 => "papau Tumeaine Coffee",
    33024721 => "Grycken",
-   33192496 => "Pühaste Tumeaine Coffee papau",
    27396246 => "Chuck the Oyster",
    32872624 => "Photosynthesis Brewski",
    32872686 => "Neuf Ans Plus Tard",
@@ -35,5 +34,11 @@
    33024822 => "Fruktinger Elderflower",
    32119156 => "Österlen påsköl",
    24702285 => "Falköping nya Victoria",
-   24566780 => "Blåkulla"
+   24566780 => "Blåkulla",
+   32124174 => "Samantha Omnipollo",
+   32124171 => "Bianca Brunch Bomb Omnipollo",
+   27365421 => "Progress Hyllie WarPigs",
+   9665327  => "Radio The Mothership",
+   1041312  => "Nepomucen three more times",
+   31353252  => "Lervig Off The Rack Kentucky"
  }.

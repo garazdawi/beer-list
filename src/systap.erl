@@ -74,30 +74,31 @@ add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
     Id = binary_to_integer(SId),
     case file:consult("override.term") of
         {ok, [#{ Id := Name }] } ->
-            case fetch_beer_stats(Name) of
+            case fetch_beer_stats(Name, false) of
                 [#{ } = Untappd|_] ->
                     Beer#{ untappd => Untappd };
                 _ ->
                     io:format("Could not find override: '~ts' (~ts)~n", [Name, SId]),
-                    Beer#{ untappd => #{ id => "0" } }
+                    find_beer(Beer, false)
             end;
         _ ->
-            Name = get_beer_name(Beer),
-            Producer = get_producer_name(Beer),
-            case fetch_beer_stats([Name, " ", Producer]) of
+            find_beer(Beer, true)
+    end.
+
+find_beer(#{ <<"productId">> := SId } = Beer, UseCache) ->
+    Name = get_beer_name(Beer),
+    Producer = get_producer_name(Beer),
+    case fetch_beer_stats([Name, " ", Producer], UseCache) of
+        [] ->
+            case fetch_beer_stats([Name, " ", hd(string:split(Producer, " ", trailing))], UseCache) of
                 [] ->
-                    case fetch_beer_stats([Name, " ", hd(string:split(Producer, " ", trailing))]) of
+                    case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer], UseCache) of
                         [] ->
-                            case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer]) of
+                            case fetch_beer_stats(Name, UseCache) of
                                 [] ->
-                                    case fetch_beer_stats(Name) of
-                                        [] ->
-                                            io:format("~ts => \"~ts\",~n",
-                                                      [SId, [Name, " ", Producer]]),
-                                            Beer#{ untappd => #{ id => "0" } };
-                                        [#{ } = Untappd|_] ->
-                                            Beer#{ untappd => Untappd }
-                                    end;
+                                    io:format("~ts => \"~ts\",~n",
+                                              [SId, [Name, " ", Producer]]),
+                                    Beer#{ untappd => #{ id => "0" } };
                                 [#{ } = Untappd|_] ->
                                     Beer#{ untappd => Untappd }
                             end;
@@ -106,7 +107,9 @@ add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
                     end;
                 [#{ } = Untappd|_] ->
                     Beer#{ untappd => Untappd }
-            end
+            end;
+        [#{ } = Untappd|_] ->
+            Beer#{ untappd => Untappd }
     end.
 
 fetch_all_beers(-1) ->
@@ -127,7 +130,7 @@ fetch_all_beers(Page) ->
     Products = maps:get(<<"products">>, Json) ++
         fetch_all_beers(maps:get(<<"nextPage">>,maps:get(<<"metadata">>, Json))).
 
-fetch_beer_stats(Name) ->
+fetch_beer_stats(Name, UseCache) ->
     QName = lists:flatten(unicode:characters_to_list(uri_string:quote(Name))),
     Page = try_cache("untappd"++QName,
                      fun() ->
@@ -139,7 +142,7 @@ fetch_beer_stats(Name) ->
                                  _ ->
                                      Res
                              end
-                     end),
+                     end, UseCache),
 
     case htmerl:sax(Page, [{event_fun, fun event_fun/3},
                            {user_state, #{ current => undefined,
@@ -151,10 +154,12 @@ fetch_beer_stats(Name) ->
     end.
 
 try_cache(Name, Fun) ->
+    try_cache(Name, Fun, true).
+try_cache(Name, Fun, UseCache) ->
     TmpFile = lists:flatten(unicode:characters_to_list("cache/"++Name)),
     ok = filelib:ensure_dir(TmpFile),
     case file:read_file(TmpFile) of
-        {ok,B} -> B;
+        {ok,B} when UseCache -> B;
         _ ->
             B = unicode:characters_to_binary(Fun()),
             file:write_file(TmpFile, B),
