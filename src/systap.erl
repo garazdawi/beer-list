@@ -9,7 +9,10 @@
 
 %% escript Entry point
 main([]) ->
-    AllBeers = fetch_all_beers(1),
+    AllBeers = lists:usort(
+       fun(#{ <<"productNumberShort">> := PN1 }, #{ <<"productNumberShort">> := PN2}) ->
+               PN1 =< PN2
+       end, fetch_all_beers(1)),
     file:write_file(
       "index.html",
       unicode:characters_to_binary(
