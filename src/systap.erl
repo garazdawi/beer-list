@@ -85,22 +85,27 @@ add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
             Name = get_beer_name(Beer),
             Producer = get_producer_name(Beer),
             case fetch_beer_stats([Name, " ", Producer]) of
-                [#{ } = Untappd|_] ->
-                    Beer#{ untappd => Untappd };
                 [] ->
                     case fetch_beer_stats([Name, " ", hd(string:split(Producer, " ", trailing))]) of
                         [] ->
                             case fetch_beer_stats([hd(string:split(Name, " ", trailing)), " ", Producer]) of
                                 [] ->
-                                    io:format("~ts => \"~ts\",~n",
-                                              [SId, [Name, " ", Producer]]),
-                                    Beer#{ untappd => #{ id => "0" } };
+                                    case fetch_beer_stats(Name) of
+                                        [] ->
+                                            io:format("~ts => \"~ts\",~n",
+                                                      [SId, [Name, " ", Producer]]),
+                                            Beer#{ untappd => #{ id => "0" } };
+                                        [#{ } = Untappd|_] ->
+                                            Beer#{ untappd => Untappd }
+                                    end;
                                 [#{ } = Untappd|_] ->
                                     Beer#{ untappd => Untappd }
                             end;
                         [#{ } = Untappd|_] ->
                             Beer#{ untappd => Untappd }
-                    end
+                    end;
+                [#{ } = Untappd|_] ->
+                    Beer#{ untappd => Untappd }
             end
     end.
 
