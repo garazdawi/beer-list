@@ -128,7 +128,7 @@ fetch_all_beers(Page) ->
         fetch_all_beers(maps:get(<<"nextPage">>,maps:get(<<"metadata">>, Json))).
 
 fetch_beer_stats(Name) ->
-    QName = uri_string:quote(Name),
+    QName = lists:flatten(unicode:characters_to_list(uri_string:quote(Name))),
     Page = try_cache("untappd"++QName,
                      fun() ->
                              Res = os:cmd("curl -s https://untappd.com/search?q="++QName),
