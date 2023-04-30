@@ -242,10 +242,16 @@ create_html_table("all", get_beers(all, Beers)),
         <script src=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js\" crossorigin=\"anonymous\"></script>
 	<!-- Initialize tablesorter plugin -->
 	<script>
-        $(document).ready(function(){
+        $(document).ready(
+                    function(){
+                        var getStyle = function(t) {
+                            if (t.startsWith('Non-Alcoholic Beer'))
+                               return 'Non-Alcoholic Beer';
+                            return t.split('-')[0];
+                        };
                         var styles = [];
 			$('.beer-style').each(function(){
-				var style = $(this).text().split('-')[0];
+				var style = getStyle($(this).text());
 				if ($.inArray(style, styles) === -1) {
 					styles.push(style);
 				}
@@ -257,13 +263,13 @@ create_html_table("all", get_beers(all, Beers)),
                         $(\".style-filter\").on(\"change\", function() {
 				var checkedStyles = [];
 				$(\".style-filter:checked\").each(function() {
-					checkedStyles.push($(this).val().split('-')[0]);
+					checkedStyles.push(getStyle($(this).val()));
 				});
 				if (checkedStyles.length == 0) {
 					$(\".beer-style\").closest(\"tr\").show();
 				} else {
 					$(\".beer-style\").each(function() {
-						var style = $(this).text().split('-')[0];
+						var style = getStyle($(this).text());
 						if (checkedStyles.includes(style)) {
 							$(this).closest(\"tr\").show();
 						} else {
@@ -274,7 +280,7 @@ create_html_table("all", get_beers(all, Beers)),
 			});
 			// Initialize tablesorter plugin
 			$(\".tablesorter\").tablesorter({});
-        });
+                    });
 	</script>
 </body>
 </html>"].
