@@ -10,8 +10,8 @@
 %% escript Entry point
 main([]) ->
     AllBeers = lists:usort(
-       fun(#{ <<"productNumberShort">> := PN1 }, #{ <<"productNumberShort">> := PN2}) ->
-               PN1 =< PN2
+       fun(#{ <<"productNumber">> := PN1 }, #{ <<"productNumber">> := PN2 }) ->
+               binary_to_integer(PN1) =< binary_to_integer(PN2)
        end, fetch_all_beers(1)),
     file:write_file(
       "index.html",
