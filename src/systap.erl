@@ -70,15 +70,24 @@ get_producer_name(Beer) ->
             Producer
     end.
 
-add_beer_stats(#{ <<"productId">> := SId } = Beer) ->
+add_beer_stats(#{ <<"productId">> := SId, <<"productNumber">> := SNum } = Beer) ->
     Id = binary_to_integer(SId),
+    Num = binary_to_integer(SNum),
     case file:consult("override.term") of
-        {ok, [#{ Id := Name }] } ->
+        {ok, [#{ Id := Name }] } when is_list(Name) ->
             case fetch_beer_stats(Name, false) of
                 [#{ } = Untappd|_] ->
                     Beer#{ untappd => Untappd };
                 _ ->
                     io:format("Could not find override: '~ts' (~ts)~n", [Name, SId]),
+                    find_beer(Beer, false)
+            end;
+        {ok, [#{ Num := Name }] } when is_list(Name) ->
+            case fetch_beer_stats(Name, false) of
+                [#{ } = Untappd|_] ->
+                    Beer#{ untappd => Untappd };
+                _ ->
+                    io:format("Could not find override: '~ts' (~ts)~n", [Name, SNum]),
                     find_beer(Beer, false)
             end;
         _ ->
